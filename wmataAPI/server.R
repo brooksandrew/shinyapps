@@ -15,32 +15,37 @@ shinyServer(function(input, output, session) {
     temp <- getURL(URLencode(request), ssl.verifypeer=F)
     busdf <- data.frame(fromJSON(temp, simplifyVector=T))
   })
-  
+    
   ## GET BUS STOPS FROM API
-  stopsdf <- reactive ({
+  stops <- reactive ({
     requestBusStops <- paste('http://api.wmata.com/Bus.svc/json/jRouteDetails?routeId=', input$busid, '&date=', Sys.Date(), '&api_key=', key, sep='')
     temp <- getURL(URLencode(requestBusStops), ssl.verifypeer=F)
     stops <- fromJSON(temp, simplifyVector=T)
-    stopsdf <- stops$Direction0$Stops
   })
-  
-  
-  ####################################
-  ## CREATING UI ELEMENTS FROM DATA ##
-  ####################################
-  
-  ## DIRECTION
+    
+  ## CREATING UI: DIRECTION
   output$dirid <- renderUI({
-    busdf <- data()
-    radioButtons('dirSign', 'Choose a Direction:', unique(busdf$BusPositions.TripHeadsign))
+    input$updateid
+    stops <- stops()
+    radioButtons('dirSign', 'Choose a Direction:', unique(c(stops$Direction0$TripHeadsign, stops$Direction1$TripHeadsign)))
   })
   
-  ## STOPS
+  ## CREATING STOPSDF
+  stopsdf <- reactive ({
+    input$updateid
+    stops <- stops()
+    dirs <- c(stops$Direction0$TripHeadsign, stops$Direction1$TripHeadsign)
+    print(input$dirSign)
+    if(input$dirSign==dirs[1]) stopsdf <- stops$Direction0$Stops
+    else stopsdf <- stops$Direction1$Stops
+  })
+  
+  ## CREATING UI: STOPS
   output$stopsid <- renderUI({
+    input$updateid
     stopsdf <- stopsdf()
-    selectInput("stops", "Choose a bus stop:", stopsdf$Name)      
+    selectInput("stops", "Choose a bus stop:", stopsdf$Name)   
   })
-  
   
   ## GET PREDICTIONS FROM API
   preddf <- reactive ({
@@ -72,7 +77,6 @@ shinyServer(function(input, output, session) {
     input$updateid
     stopsdf <- stopsdf()
     pred2print <- preddf()
-    
     pred2print <- pred2print[,c('Predictions.DirectionText', 'Predictions.Minutes', 'Predictions.RouteID')]
     names(pred2print)[names(pred2print)=='Predictions.DirectionText'] <- 'Direction'
     names(pred2print)[names(pred2print)=='Predictions.Minutes'] <- 'Prediction'
