@@ -15,7 +15,8 @@ shinyUI(fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      selectInput('busid', 'Choose a bus', buses, selected='64')
+      selectInput('busid', 'Choose a bus', buses, selected='64'),
+      actionButton('updateid', 'Refresh data')
     ),
     
     mainPanel(
