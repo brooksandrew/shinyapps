@@ -8,12 +8,47 @@ key <- 'x42rp9qg6jjjydn2u8ng8stx'
 
 shinyServer(function(input, output, session) {
   
-  ## GET DATA FROM API
+  ## GET BUS POSITIONS FROM API
   data <- reactive({
     route = input$busid 
     request <- paste(baseurl, route, endurl, key, sep='')
     temp <- getURL(URLencode(request), ssl.verifypeer=F)
     busdf <- data.frame(fromJSON(temp, simplifyVector=T))
+  })
+  
+  ## GET BUS STOPS FROM API
+  stopsdf <- reactive ({
+    requestBusStops <- paste('http://api.wmata.com/Bus.svc/json/jRouteDetails?routeId=', input$busid, '&date=', Sys.Date(), '&api_key=', key, sep='')
+    temp <- getURL(URLencode(requestBusStops), ssl.verifypeer=F)
+    stops <- fromJSON(temp, simplifyVector=T)
+    stopsdf <- stops$Direction0$Stops
+  })
+  
+  
+  ####################################
+  ## CREATING UI ELEMENTS FROM DATA ##
+  ####################################
+  
+  ## DIRECTION
+  output$dirid <- renderUI({
+    busdf <- data()
+    radioButtons('dirSign', 'Choose a Direction:', unique(busdf$BusPositions.TripHeadsign))
+  })
+  
+  ## STOPS
+  output$stopsid <- renderUI({
+    stopsdf <- stopsdf()
+    selectInput("stops", "Choose a bus stop:", stopsdf$Name)      
+  })
+  
+  
+  ## GET PREDICTIONS FROM API
+  preddf <- reactive ({
+    stopsdf <- stopsdf()
+    stopID <- stopsdf$StopID[match(input$stops, stopsdf$Name)]
+    request <- paste('http://api.wmata.com/NextBusService.svc/json/jPredictions?StopID=', stopID, '&api_key=', key, sep='')
+    temp <- getURL(URLencode(request), ssl.verifypeer=F)
+    preddf <- data.frame(fromJSON(temp, simplifyVector=T))
   })
   
   ## MAP
@@ -27,33 +62,26 @@ shinyServer(function(input, output, session) {
       ylab('') + xlab('') + theme(axis.ticks=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank())
     
     plot(mapPoints)
-  })
+  })  
   
-  ## TEXT
-  output$mytext <- renderText ({
-    input$updateid
-    busdf <- data()
-    busdf[1,1]
-  })
+  ##############################
+  ## DATATABLE OF PREDICTIONS ##
+  ##############################
   
-  ## DATATABLE
   output$mytable <- renderDataTable ({
     input$updateid
-    df2print <- data()
-    df2print <- df2print[,1:3]
-  })
-  
-  
-  output$stopsid <- renderUI({
-    requestBusStops <- paste('http://api.wmata.com/Bus.svc/json/jRouteDetails?routeId=', input$busid, '&date=', Sys.Date(), '&api_key=', key, sep='')
+    stopsdf <- stopsdf()
+    pred2print <- preddf()
     
-    requestBusStops <- paste('http://api.wmata.com/Bus.svc/json/jRouteDetails?routeId=', '64', '&date=', Sys.Date(), '&api_key=', key, sep='')
-    temp <- getURL(URLencode(requestBusStops), ssl.verifypeer=F)
-    stops <- fromJSON(temp, simplifyVector=T)
-    stopsdf <- stops$Direction0$Stops
-    selectInput("stops", "Choose a bus stop", stopsdf$Name)
-                       
+    pred2print <- pred2print[,c('Predictions.DirectionText', 'Predictions.Minutes', 'Predictions.RouteID')]
+    names(pred2print)[names(pred2print)=='Predictions.DirectionText'] <- 'Direction'
+    names(pred2print)[names(pred2print)=='Predictions.Minutes'] <- 'Prediction'
+    names(pred2print)[names(pred2print)=='Predictions.RouteID'] <- 'Bus'
+    pred2print$time <- Sys.time()
+
+    pred2print
   })
+  
   
   
 })
