@@ -2,6 +2,7 @@ library('RCurl')
 library('jsonlite')
 library('ggmap')
 library('shiny')
+library('geosphere')
 
 ## GETTING BUS ROUTES
 key <- 'x42rp9qg6jjjydn2u8ng8stx'

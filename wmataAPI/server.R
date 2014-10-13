@@ -4,6 +4,8 @@ baseurl <- 'http://api.wmata.com/Bus.svc/json/jBusPositions?routeId='
 endurl <- '&includingVariations=true&lat=0&lon=0&radius=0&api_key='
 key <- 'x42rp9qg6jjjydn2u8ng8stx'
 
+source('helperFunctions.R')
+
 shinyServer(function(input, output, session) {
   
   ## GET BUS POSITIONS FROM API
@@ -33,7 +35,6 @@ shinyServer(function(input, output, session) {
     input$updateid
     stops <- stops()
     dirs <- c(stops$Direction0$TripHeadsign, stops$Direction1$TripHeadsign)
-    print(input$dirSign)
     if(input$dirSign==dirs[1]) stopsdf <- stops$Direction0$Stops
     else stopsdf <- stops$Direction1$Stops
   })
@@ -73,10 +74,27 @@ shinyServer(function(input, output, session) {
   
   output$mytable <- renderDataTable ({
     input$updateid
-    stopsdf <- stopsdf()
     pred2print <- preddf()
-    print(pred2print)
+    stopsdf <- stopsdf()
+    #datadf <- data()
    
+    ## Get Stops away
+#     busLatLon <- c(datadf$Lon[1], datadf$Lat[1])
+#     print(busLatLon)
+#     
+#     stopID <- stopsdf$StopID[match(input$stops, stopsdf$Name)]
+#     print(paste('stopID', stopID))
+#     
+#     stopsNotArrived <- stopsdf[1:which(stopsdf$StopID==stopID),]
+#     print(stopsNotArrived)
+#     
+#     closeStop <- findClosestStop(stopsNotArrived, busLatLon)[1,'StopID']
+#     print(paste('closeStop', closeStop))
+#     
+#     busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
+#     print(busStats)
+    
+    
     if(nrow(pred2print)==0) {pred2print <- data.frame("No Predictions Available"); names(pred2print)[1] <- ''
     } else {
       pred2print <- pred2print[,c('Predictions.DirectionText', 'Predictions.Minutes', 'Predictions.RouteID')]
@@ -85,6 +103,9 @@ shinyServer(function(input, output, session) {
       names(pred2print)[names(pred2print)=='Predictions.RouteID'] <- 'Bus'
       pred2print$time <- Sys.time()
     }
+    
+    
+    
     pred2print
   })
   
