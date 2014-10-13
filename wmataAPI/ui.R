@@ -3,6 +3,7 @@ library('jsonlite')
 library('ggmap')
 library('shiny')
 library('geosphere')
+library('stringdist')
 
 ## GETTING BUS ROUTES
 key <- 'x42rp9qg6jjjydn2u8ng8stx'
@@ -25,7 +26,8 @@ shinyUI(fluidPage(
     
     mainPanel(
         tabPanel("Map", plotOutput("mymap", "600px", "600px")),
-        tabPanel("Table", dataTableOutput("mytable"))
+        tabPanel("Table", dataTableOutput("mytable")),
+        tabPanel("geoTable", dataTableOutput("mygeotable"))
     )  
     
   )

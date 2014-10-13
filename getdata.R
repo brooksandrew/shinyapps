@@ -4,13 +4,14 @@ require('ggmap')
 
 ## setting up request
 baseurl <- 'http://api.wmata.com/Bus.svc/json/jBusPositions?routeId='
+key <- 'x42rp9qg6jjjydn2u8ng8stx'
 route <- '64' 
 endurl <- '&includingVariations=true&lat=0&lon=0&radius=0&api_key='
 
 ## hit API once
 request <- paste(baseurl, route, endurl, key, sep='')
 temp <- getURL(URLencode(request), ssl.verifypeer=F)
-dl <- fromJSON(temp, simplifyVector=T)
+dl <- data.frame(fromJSON(temp, simplifyVector=T))
 
 ## make a function to hit API every x seconds and save results to data.frame with max of 10000 rows
 saveTrips <- function(request, maxRows=1000, seconds=1) {
@@ -39,10 +40,16 @@ saveTrips(request)
 ## plot bus positions on map ##########################
 #######################################################
 
-require('ggmaps')
+route = '64'
+request <- paste('http://api.wmata.com/Bus.svc/json/jBusPositions?routeId=', route, '&includingVariations=true&lat=0&lon=0&radius=0&api_key=', key, sep='')
+temp <- getURL(URLencode(request), ssl.verifypeer=F)
+busdf <- data.frame(fromJSON(temp, simplifyVector=T))
+busdf <- busdf[busdf$BusPositions.DirectionText=='SOUTH',]
+
+require('ggmap')
 map <- get_map(location = c(busdf$BusPositions.Lon[1], busdf$BusPositions.Lat[1]), zoom=13)
 mapPoints <- ggmap(map) + 
-  geom_point(aes(x=BusPositions.Lon, y=BusPositions.Lat), data=busdf, alpha=0.25)
+  geom_point(aes(x=BusPositions.Lon, y=BusPositions.Lat), data=busdf, alpha=1, size=7)
 
 plot(mapPoints)
 
@@ -50,7 +57,6 @@ plot(mapPoints)
 ## getBusRoutes #######################################
 #######################################################
 
-key <- 'x42rp9qg6jjjydn2u8ng8stx'
 request <- paste('http://api.wmata.com/Bus.svc/json/jRoutes?api_key=', key, sep='')
 temp <- getURL(URLencode(request), ssl.verifypeer=F)
 buses <- fromJSON(temp, simplifyVector=T)
@@ -79,8 +85,8 @@ findClosestStop <- function(allStops, myStop) {
   return(closestStop)
 }
 
-busStop <- findClosestStop(stops, c(dl$BusPositions$Lon[1], dl$BusPositions$Lat[1]))[1,'StopID']
-myStop <- findClosestStop(stops, c(dl$BusPositions$Lon[1]-.001, dl$BusPositions$Lat[1]+.05))[1,'StopID']
+busStop <- findClosestStop(stops, c(dl$BusPositions.Lon[1], dl$BusPositions.Lat[1]))[1,'StopID']
+myStop <- findClosestStop(stops, c(dl$BusPositions.Lon[1]-.001, dl$BusPositions.Lat[1]+.05))[1,'StopID']
 
 closestStop2myStop <- function(busStop, myStop, allStops) {
   allStops2 <- allStops[(which(allStops$StopID==busStop)):(which(allStops$StopID==myStop)),]

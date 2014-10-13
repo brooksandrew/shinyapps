@@ -1,7 +1,5 @@
 #setwd('C:/Users/abrooks/Documents/github/shinyapps/wmataAPI/')
 
-baseurl <- 'http://api.wmata.com/Bus.svc/json/jBusPositions?routeId='
-endurl <- '&includingVariations=true&lat=0&lon=0&radius=0&api_key='
 key <- 'x42rp9qg6jjjydn2u8ng8stx'
 
 source('helperFunctions.R')
@@ -11,7 +9,7 @@ shinyServer(function(input, output, session) {
   ## GET BUS POSITIONS FROM API
   data <- reactive({
     route = input$busid 
-    request <- paste(baseurl, route, endurl, key, sep='')
+    request <- paste('http://api.wmata.com/Bus.svc/json/jBusPositions?routeId=', route, '&includingVariations=true&lat=0&lon=0&radius=0&api_key=', key, sep='')
     temp <- getURL(URLencode(request), ssl.verifypeer=F)
     busdf <- data.frame(fromJSON(temp, simplifyVector=T))
   })
@@ -35,20 +33,20 @@ shinyServer(function(input, output, session) {
     input$updateid
     stops <- stops()
     dirs <- c(stops$Direction0$TripHeadsign, stops$Direction1$TripHeadsign)
-    if(input$dirSign==dirs[1]) stopsdf <- stops$Direction0$Stops
-    else stopsdf <- stops$Direction1$Stops
+    if(input$dirSign==dirs[1]) stopsdf <- stops$Direction0
+    else stopsdf <- stops$Direction1
   })
   
   ## CREATING UI: STOPS
   output$stopsid <- renderUI({
     input$updateid
-    stopsdf <- stopsdf()
+    stopsdf <- stopsdf()$Stops
     selectInput("stops", "Choose a bus stop:", stopsdf$Name)   
   })
   
   ## GET PREDICTIONS FROM API
   preddf <- reactive ({
-    stopsdf <- stopsdf()
+    stopsdf <- stopsdf()$Stops
     stopID <- stopsdf$StopID[match(input$stops, stopsdf$Name)]
     request <- paste('http://api.wmata.com/NextBusService.svc/json/jPredictions?StopID=', stopID, '&api_key=', key, sep='')
     temp <- getURL(URLencode(request), ssl.verifypeer=F)
@@ -59,6 +57,10 @@ shinyServer(function(input, output, session) {
   output$mymap <- renderPlot ({
     input$updateid
     busdf <- data()
+    
+    ## plotting just buses going in the right direction
+    strdist <- stringdist(input$dirSign, busdf$BusPositions.TripHeadsign)
+    busdf <- busdf[which(strdist==min(strdist)), ]
     
     map <- ggmap::get_map(location = c(busdf$BusPositions.Lon[1], busdf$BusPositions.Lat[1]), zoom=13)
     mapPoints <- ggmap::ggmap(map) + 
@@ -75,25 +77,6 @@ shinyServer(function(input, output, session) {
   output$mytable <- renderDataTable ({
     input$updateid
     pred2print <- preddf()
-    stopsdf <- stopsdf()
-    #datadf <- data()
-   
-    ## Get Stops away
-#     busLatLon <- c(datadf$Lon[1], datadf$Lat[1])
-#     print(busLatLon)
-#     
-#     stopID <- stopsdf$StopID[match(input$stops, stopsdf$Name)]
-#     print(paste('stopID', stopID))
-#     
-#     stopsNotArrived <- stopsdf[1:which(stopsdf$StopID==stopID),]
-#     print(stopsNotArrived)
-#     
-#     closeStop <- findClosestStop(stopsNotArrived, busLatLon)[1,'StopID']
-#     print(paste('closeStop', closeStop))
-#     
-#     busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
-#     print(busStats)
-    
     
     if(nrow(pred2print)==0) {pred2print <- data.frame("No Predictions Available"); names(pred2print)[1] <- ''
     } else {
@@ -101,15 +84,59 @@ shinyServer(function(input, output, session) {
       names(pred2print)[names(pred2print)=='Predictions.DirectionText'] <- 'Direction'
       names(pred2print)[names(pred2print)=='Predictions.Minutes'] <- 'Prediction'
       names(pred2print)[names(pred2print)=='Predictions.RouteID'] <- 'Bus'
-      pred2print$time <- Sys.time()
     }
-    
-    
-    
+  
     pred2print
   })
   
+  ##############################
+  ## DATATABLE OF GEO PREDICTIONS ##
+  ##############################
   
+  output$mygeotable <- renderDataTable ({
   
-})
+    preddf <- preddf()
+    stopsdf <- stopsdf()
+    stops <- stops()
+    datadf <- data()
+    
+    ## taking just BUS GPS on the selected route
+    strdist <- stringdist(input$dirSign, datadf$BusPositions.TripHeadsign)
+    closestBus <- datadf[which(strdist==min(strdist)), ]
+    
+    for(i in 1:nrow(closestBus)) {
+      busLatLon <- c(closestBus$BusPositions.Lon[i], closestBus$BusPositions.Lat[i])
+      #print(paste('busLatLon', busLatLon))
+      
+      stopID <- stopsdf$Stops$StopID[match(input$stops, stopsdf$Stops$Name)]
+      #print(paste('stopID... id of your busstop', stopID))
+      
+      stopsNotArrived <- stopsdf$Stops[1:which(stopsdf$Stops$StopID==stopID),]
+      #print(paste('which', which(stopsdf$Stops$StopID==stopID)))
+      #print(stopsNotArrived)
+      
+      closeStop <- findClosestStop(stopsNotArrived, busLatLon)[1,'StopID']
+      closestBus$closeStop[i] <- closeStop
+      #print(findClosestStop(stopsNotArrived, busLatLon))
+      #print(paste('closeStop', closeStop))
+      
+      busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
+      #print(busStats)
+      
+      closestBus$dist[i] <- busStats$cumdist*(1/1609.34)
+      closestBus$numStops[i] <- busStats$numStops
 
+    }
+  
+    closestBus2 <- merge(closestBus, stopsdf$Stops[,c('StopID', 'Name')], by.x='closeStop', by.y='StopID')
+    closestBus2 <- closestBus2[,c('Name', 'dist', 'numStops')]
+    
+    #print(closestBus)
+    #print(stopsdf$Stops)
+    
+    closestBus2
+  })
+
+  
+}
+)
