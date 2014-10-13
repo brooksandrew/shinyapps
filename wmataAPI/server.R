@@ -97,42 +97,39 @@ shinyServer(function(input, output, session) {
   
     preddf <- preddf()
     stopsdf <- stopsdf()
-    stops <- stops()
+    #stops <- stops()
     datadf <- data()
     
     ## taking just BUS GPS on the selected route
     strdist <- stringdist(input$dirSign, datadf$BusPositions.TripHeadsign)
     closestBus <- datadf[which(strdist==min(strdist)), ]
+    deleted <- c()
     
+    ## for each bus on the radar, calculate # of stops to go and how distance away
     for(i in 1:nrow(closestBus)) {
       busLatLon <- c(closestBus$BusPositions.Lon[i], closestBus$BusPositions.Lat[i])
-      #print(paste('busLatLon', busLatLon))
-      
-      stopID <- stopsdf$Stops$StopID[match(input$stops, stopsdf$Stops$Name)]
-      #print(paste('stopID... id of your busstop', stopID))
-      
+      stopID <- stopsdf$Stops$StopID[match(input$stops, stopsdf$Stops$Name)]      
       stopsNotArrived <- stopsdf$Stops[1:which(stopsdf$Stops$StopID==stopID),]
-      #print(paste('which', which(stopsdf$Stops$StopID==stopID)))
-      #print(stopsNotArrived)
+      closeStop <- findClosestStop(stopsdf$Stops, busLatLon)[1,'StopID']
       
-      closeStop <- findClosestStop(stopsNotArrived, busLatLon)[1,'StopID']
-      closestBus$closeStop[i] <- closeStop
-      #print(findClosestStop(stopsNotArrived, busLatLon))
-      #print(paste('closeStop', closeStop))
-      
-      busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
-      #print(busStats)
-      
-      closestBus$dist[i] <- busStats$cumdist*(1/1609.34)
-      closestBus$numStops[i] <- busStats$numStops
-
+      ## if there are buses on the radar that haven't passed stopID yet
+      if(closeStop %in% stopsNotArrived$StopID) {
+        closestBus$closeStop[i] <- closeStop
+        closestBus$Name[i] <- stopsdf$Stops$Name[match(closeStop, stopsdf$Stops$StopID)]
+        busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
+        closestBus$dist[i] <- round(busStats$cumdist*(1/1609.34),2)
+        closestBus$numStops[i] <- busStats$numStops
+      } else {deleted <- c(deleted, i)}
     }
-  
-    closestBus2 <- merge(closestBus, stopsdf$Stops[,c('StopID', 'Name')], by.x='closeStop', by.y='StopID')
-    closestBus2 <- closestBus2[,c('Name', 'dist', 'numStops')]
     
-    #print(closestBus)
-    #print(stopsdf$Stops)
+    if(length(deleted)>0) closestBus <- closestBus[-deleted,]
+    
+    print(closestBus)
+    if(nrow(closestBus)>0) { 
+      closestBus2 <- closestBus[,c('Name', 'dist', 'numStops')]
+      names(closestBus2) <- c("Where bus is now", "Miles away", "Stops away")
+    } else {closestBus2 <- data.frame(sorry="No Buses on the radar :(")}
+    print(closestBus2)
     
     closestBus2
   })
