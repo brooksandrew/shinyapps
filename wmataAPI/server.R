@@ -111,9 +111,11 @@ shinyServer(function(input, output, session) {
       stopID <- stopsdf$Stops$StopID[match(input$stops, stopsdf$Stops$Name)]      
       stopsNotArrived <- stopsdf$Stops[1:which(stopsdf$Stops$StopID==stopID),]
       closeStop <- findClosestStop(stopsdf$Stops, busLatLon)[1,'StopID']
+      print(stopsNotArrived)
       
       ## if there are buses on the radar that haven't passed stopID yet
       if(closeStop %in% stopsNotArrived$StopID) {
+        
         closestBus$closeStop[i] <- closeStop
         closestBus$Name[i] <- stopsdf$Stops$Name[match(closeStop, stopsdf$Stops$StopID)]
         busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
