@@ -1,4 +1,4 @@
-
+#setwd('C:/Users/abrooks/Documents/github/shinyapps/wmataAPI/')
 
 baseurl <- 'http://api.wmata.com/Bus.svc/json/jBusPositions?routeId='
 endurl <- '&includingVariations=true&lat=0&lon=0&radius=0&api_key='
