@@ -1,5 +1,3 @@
-## reactiveTimer. See ?reactiveTimer
-#setwd('/Users/ajb/Documents/shiny/nextbus')
 
 
 baseurl <- 'http://api.wmata.com/Bus.svc/json/jBusPositions?routeId='
@@ -61,8 +59,8 @@ shinyServer(function(input, output, session) {
     input$updateid
     busdf <- data()
     
-    map <- get_map(location = c(busdf$BusPositions.Lon[1], busdf$BusPositions.Lat[1]), zoom=13)
-    mapPoints <- ggmap(map) + 
+    map <- ggmap::get_map(location = c(busdf$BusPositions.Lon[1], busdf$BusPositions.Lat[1]), zoom=13)
+    mapPoints <- ggmap::ggmap(map) + 
       geom_point(aes(x=BusPositions.Lon, y=BusPositions.Lat), data=busdf, alpha=0.85, size=7) +
       ylab('') + xlab('') + theme(axis.ticks=element_blank(), axis.text.x=element_blank(), axis.text.y=element_blank())
     
@@ -77,12 +75,16 @@ shinyServer(function(input, output, session) {
     input$updateid
     stopsdf <- stopsdf()
     pred2print <- preddf()
-    pred2print <- pred2print[,c('Predictions.DirectionText', 'Predictions.Minutes', 'Predictions.RouteID')]
-    names(pred2print)[names(pred2print)=='Predictions.DirectionText'] <- 'Direction'
-    names(pred2print)[names(pred2print)=='Predictions.Minutes'] <- 'Prediction'
-    names(pred2print)[names(pred2print)=='Predictions.RouteID'] <- 'Bus'
-    pred2print$time <- Sys.time()
-
+    print(pred2print)
+   
+    if(nrow(pred2print)==0) {pred2print <- data.frame("No Predictions Available"); names(pred2print)[1] <- ''
+    } else {
+      pred2print <- pred2print[,c('Predictions.DirectionText', 'Predictions.Minutes', 'Predictions.RouteID')]
+      names(pred2print)[names(pred2print)=='Predictions.DirectionText'] <- 'Direction'
+      names(pred2print)[names(pred2print)=='Predictions.Minutes'] <- 'Prediction'
+      names(pred2print)[names(pred2print)=='Predictions.RouteID'] <- 'Bus'
+      pred2print$time <- Sys.time()
+    }
     pred2print
   })
   

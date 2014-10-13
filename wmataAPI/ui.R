@@ -1,8 +1,7 @@
-require('RCurl')
-require('jsonlite')
-require('ggmap')
-require('shiny')
-require('ggmap')
+library('RCurl')
+library('jsonlite')
+library('ggmap')
+library('shiny')
 
 ## GETTING BUS ROUTES
 key <- 'x42rp9qg6jjjydn2u8ng8stx'
@@ -12,9 +11,10 @@ busesRoutes <- data.frame(fromJSON(tempBusRoutes, simplifyVector=T))
 buses <- busesRoutes[,2]
 
 shinyUI(fluidPage(
-  titlePanel("Where's my Bus?"),
+  titlePanel("Dude, Where's my Bus?"),
   
   sidebarLayout(
+    
     sidebarPanel(
       selectInput('busid', 'Choose a bus:', buses, selected='64'),
       uiOutput("stopsid"),
@@ -23,10 +23,8 @@ shinyUI(fluidPage(
     ),
     
     mainPanel(
-      #tabsetPanel(
         tabPanel("Map", plotOutput("mymap", "600px", "600px")),
         tabPanel("Table", dataTableOutput("mytable"))
-      #)
     )  
     
   )
