@@ -124,12 +124,11 @@ shinyServer(function(input, output, session) {
     
     if(length(deleted)>0) closestBus <- closestBus[-deleted,]
     
-    print(closestBus)
     if(nrow(closestBus)>0) { 
       closestBus2 <- closestBus[,c('Name', 'dist', 'numStops')]
       names(closestBus2) <- c("Where bus is now", "Miles away", "Stops away")
-    } else {closestBus2 <- data.frame(sorry="No Buses on the radar :(")}
-    print(closestBus2)
+    } else {closestBus2 <- data.frame(Sorry="No buses on the radar :(")}
+    
     
     closestBus2
   })
