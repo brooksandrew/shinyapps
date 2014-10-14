@@ -103,6 +103,10 @@ shinyServer(function(input, output, session) {
     ## taking just BUS GPS on the selected route
     strdist <- stringdist(input$dirSign, datadf$BusPositions.TripHeadsign)
     closestBus <- datadf[which(strdist==min(strdist)), ]
+    closestBus$closeStop <- NA
+    closestBus$dist <- NA
+    closestBus$numStops <- NA
+    closestBus$Name <- NA
     deleted <- c()
     
     ## for each bus on the radar, calculate # of stops to go and how distance away
@@ -111,16 +115,14 @@ shinyServer(function(input, output, session) {
       stopID <- stopsdf$Stops$StopID[match(input$stops, stopsdf$Stops$Name)]      
       stopsNotArrived <- stopsdf$Stops[1:which(stopsdf$Stops$StopID==stopID),]
       closeStop <- findClosestStop(stopsdf$Stops, busLatLon)[1,'StopID']
-      print(stopsNotArrived)
-      
+            
       ## if there are buses on the radar that haven't passed stopID yet
-      if(closeStop %in% stopsNotArrived$StopID) {
-        
-        closestBus$closeStop[i] <- closeStop
+      if(closeStop %in% stopsNotArrived$StopID[1:(nrow(stopsNotArrived)-1)]) {
+        closestBus$closeStop[i] <- closeStop                
         closestBus$Name[i] <- stopsdf$Stops$Name[match(closeStop, stopsdf$Stops$StopID)]
         busStats <- closestStop2myStop(closeStop, stopID, stopsNotArrived)
         closestBus$dist[i] <- round(busStats$cumdist*(1/1609.34),2)
-        closestBus$numStops[i] <- busStats$numStops
+        closestBus$numStops[i] <- busStats$numStops-1
       } else {deleted <- c(deleted, i)}
     }
     
