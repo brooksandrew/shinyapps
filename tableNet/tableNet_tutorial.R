@@ -11,7 +11,7 @@ dfL2 <- dir2dfList(thedir, ext='.csv', nrows=-1, sep=',', stringsAsFactors=F)
 
 commonv <- unlist(lapply(dfL2, names),use.names=F)
 commonv <- unique(commonv[duplicated(commonv)==T])
-keyL2 <- sapply(commonv, function(x) isKey(dfL2, x)) #20 seconds
+system.time(keyL2 <- sapply(commonv, function(x) isKey(dfL2, x))) #20 seconds
 
 if(1==0) runApp('C:/Users/abrooks/Documents/github/shinyapps/tableNet/shiny')
 
