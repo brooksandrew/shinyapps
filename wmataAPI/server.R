@@ -1,7 +1,6 @@
 #setwd('C:/Users/abrooks/Documents/github/shinyapps/wmataAPI/')
 
-key <- 'x42rp9qg6jjjydn2u8ng8stx'
-
+key <- scan('wmataKey.txt', what='character') # use your private WMATA key or the public key: kfgpmgvfgacx98de9q3xazww
 source('helperFunctions.R')
 
 shinyServer(function(input, output, session) {

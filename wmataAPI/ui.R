@@ -6,7 +6,7 @@ library('geosphere')
 library('stringdist')
 
 ## GETTING BUS ROUTES
-key <- 'x42rp9qg6jjjydn2u8ng8stx'
+key <- scan('wmataKey.txt', what='character')
 requestBusRoutes <- paste('http://api.wmata.com/Bus.svc/json/jRoutes?api_key=', key, sep='')
 tempBusRoutes <- getURL(URLencode(requestBusRoutes), ssl.verifypeer=F)
 busesRoutes <- data.frame(fromJSON(tempBusRoutes, simplifyVector=T))
